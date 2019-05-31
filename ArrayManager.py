@@ -1,15 +1,22 @@
 # usr/bin/env python3
 # -*- coding:utf-8 -*-
 
+"""
+This class is used to record ask and bid price data that transmit in real time.
+
+Created on May 31, 2019
+@author Rui.Pan
+"""
+
 import numpy as np
 import talib
 
 
 class TickArrayManager(object):
-    def __init__(self, high, low, close, frequency: int = 10, size: int = 10):
-        self.high = high
-        self.low = low
-        self.close = close
+    def __init__(self, frequency: int = 10, size: int = 10):
+        self.high = []
+        self.low = []
+        self.close = []
         self.frequency = frequency
         self.size = size
         self.tick_data = []
@@ -33,13 +40,13 @@ class TickArrayManager(object):
             pass
 
     def high(self):
-        return self.high()
+        return self.high
 
     def low(self):
-        return self.low()
+        return self.low
 
     def close(self):
-        return self.close()
+        return self.close
 
     def atr(self, n: int, array=True):
         result = talib.ATR(np.array(self.high), np.array(self.low), np.array(self.close), n)
