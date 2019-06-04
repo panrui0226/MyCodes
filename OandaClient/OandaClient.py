@@ -1,17 +1,11 @@
 '''
-Created by Benjamin Ji
-
 Wheel built for Oanda Api v20
-
 All rights reserved.
-
 _(:з」∠)_
-
 2019-3-14 12:44:46
 '''
 
 import pandas as pd
-from datetime import datetime, timedelta
 import requests
 import json
 import abc

@@ -3,7 +3,7 @@
 from ArrayManager import TickArrayManager
 
 
-class Strategy05:
+class StrategyWaveCrest:
     def __init__(self):
         self.tam = TickArrayManager(frequency=60, size=20)
         self.window = []
@@ -43,6 +43,7 @@ class Strategy05:
                     # 平仓条件出发后不执行开仓条件判断
                     long = False
                     short = False
+
             if self.posShort > 0:
                 if self.transaction - last_price > self.takeProfit:
                     self.transaction = self.transaction - self.takeProfit

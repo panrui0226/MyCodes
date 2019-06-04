@@ -32,6 +32,7 @@ class TickArrayManager(object):
             self.low.append(min(self.tick_data))
             self.close.append(self.tick_data[-1])
             self.tick_data = []
+            self.tick_data.append(self.mid)
 
         if len(self.close) > self.size:
             self.high = self.high[len(self.high) - self.size:]
