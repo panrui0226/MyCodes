@@ -1,11 +1,11 @@
-from ArrayManager import TickArrayManager
+from ArrayManager.ArrayManager import TickArrayManager
 
 
 class StrategyDoubleMA(object):
     def __init__(self):
         self.tam = TickArrayManager(frequency=60, size=20)
         # 策略参数
-        self.adj_factor = 0.998
+        self.adj_factor = 0.999
         self.units = 200
         # 策略变量
         self.posLong = 0
@@ -35,22 +35,22 @@ class StrategyDoubleMA(object):
             diff1_fast = ma_5[-2] - ma_5[-3]
             diff0_fast = ma_5[-3] - ma_5[-4]
 
-            golden_cross = diff2_cross < 0 < diff3_cross
-            death_cross = diff3_cross < 0 < diff2_cross
+            # golden_cross = diff2_cross < 0 < diff3_cross
+            # death_cross = diff3_cross < 0 < diff2_cross
 
             if self.posLong == 1:
-                if death_cross:
-                    signal = [-1, self.units]
-                    self.posLong = 0
-                elif tam.last_price() <= ma_11[-1] * self.adj_factor:
+                # if death_cross:
+                #     signal = [-1, self.units]
+                #     self.posLong = 0
+                if tam.last_price() <= ma_11[-1] * self.adj_factor:
                     signal = [-1, self.units]
                     self.posLong = 0
 
             elif self.posShort == 1:
-                if golden_cross:
-                    signal = [1, self.units]
-                    self.posShort = 0
-                elif tam.last_price() >= ma_11[-1] * (1/self.adj_factor):
+                # if golden_cross:
+                #     signal = [1, self.units]
+                #     self.posShort = 0
+                if tam.last_price() >= ma_11[-1] * (1/self.adj_factor):
                     signal = [1, self.units]
                     self.posShort = 0
 
