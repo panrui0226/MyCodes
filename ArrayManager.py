@@ -13,7 +13,7 @@ import talib
 
 
 class TickArrayManager(object):
-    def __init__(self, frequency: int = 10, size: int = 10):
+    def __init__(self, frequency: int = 60, size: int = 10):
         self.high = []
         self.low = []
         self.close = []
@@ -22,7 +22,7 @@ class TickArrayManager(object):
         self.tick_data = []
         self.mid = 0
 
-    def update_bar(self,  bid, ask):
+    def update_bar(self, bid, ask):
         self.mid = (bid + ask)/2.0
 
         if len(self.tick_data) < self.frequency:
@@ -47,15 +47,6 @@ class TickArrayManager(object):
         data_list[-1] = self.mid
         result = talib.SMA(np.array(data_list))
         return result
-
-    def high(self):
-        return self.high
-
-    def low(self):
-        return self.low
-
-    def close(self):
-        return self.close
 
     def last_price(self):
         return self.mid

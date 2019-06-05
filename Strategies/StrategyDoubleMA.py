@@ -20,7 +20,7 @@ class StrategyDoubleMA(object):
         ma_5 = []
         ma_11 = []
 
-        if len(tam.close() > 11):
+        if len(tam.close) > 11:
             ma_5 = tam.sma(5, array=True)
             ma_11 = tam.sma(11, array=True)
 

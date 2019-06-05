@@ -9,6 +9,8 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
 import time
 import logging
+from Strategies.StrategyDoubleMA import StrategyDoubleMA
+from Strategies.StrategyWaveCrest import StrategyWaveCrest
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -39,7 +41,7 @@ logger = logging.getLogger(__name__)
 # except:
 #     pass
 
-# cfg_file = open('CMCConfig.cfg')
+# cfg_file = open('TradingConfig.cfg')
 # setting = json.load(cfg_file)
 
 
@@ -91,49 +93,177 @@ logger = logging.getLogger(__name__)
 #             print(TimeoutError)
 
 class CMCTrader(object):
-    def __init__(self):
+    def __init__(self, cfg):
+        self.cfg = cfg
         self.login_status = False
         self.original_url = 'https://platform.cmcmarkets.com/#/login?b=CMC-CFD&r=AU'
         self.driver = webdriver.Chrome('/Applications/chromedriver')
+        self.waiter = WebDriverWait(self.driver, 60)
+        self.strategy = None
 
-    def close_subwindows(self):
+    # ------------------------------------------------------------------------------------------------------------------
+    #
+    def close_sub_windows(self):
         driver = self.driver
-        close_list = driver.find_elements_by_xpath("//div[@class='main fade']//"
+        close_list = driver.find_elements_by_xpath("//div[@class='header-item action-buttons']//"
                                                   "button[@class='header-item__button close-button' and @title='关闭']")
         for c in close_list:
             try:
                 c.click()
             except Exception as e:
-                pass
+                logger.info('A sub window that failed to close automatically has been detected. '
+                            'Please close it manually')
 
-    def login(self, username: str, password: str):
+    # ------------------------------------------------------------------------------------------------------------------
+    #
+    def open_trade_window(self, instrument):
         driver = self.driver
-        driver.get(self.original_url)
-        driver.fullscreen_window()
-        waiter = WebDriverWait(driver, 60)
+        waiter = self.waiter
+
+        xpath_search = "//nav[@class='header-row header-row-3 navigation-bar']//li[@title = '打开快速搜索进入产品']"
+        waiter.until(lambda driver: driver.find_element_by_xpath(xpath_search))
+        ele_search = driver.find_element_by_xpath(xpath_search)
+        ele_search.click()
+
+        xpath_input = "//input[@class = 'search-input-text']"
+        waiter.until(lambda driver: driver.find_element_by_xpath(xpath_input))
+        ele_input = driver.find_element_by_xpath(xpath_input)
+        ele_input.clear()
+        ele_input.send_keys(instrument)
+
+        xpath_result = "//ul[@class = 'results']//li[@class = 'search-result-item--odd currently-selected-by-keypress']"
+        waiter.until(lambda driver: driver.find_element_by_xpath(xpath_result))
+        ele_result = driver.find_element_by_xpath(xpath_result)
+        ele_result.click()
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #
+    def login(self):
+        driver = self.driver
+        waiter = self.waiter
 
         waiter.until(lambda driver: driver.find_element_by_id('username'))
         ele_username = driver.find_element_by_id('username')
         ele_password = driver.find_element_by_id('password')
-        ele_username.send_keys(username)
-        ele_password.send_keys(password + '\n')
+        ele_username.send_keys(self.cfg['username'])
+        ele_password.send_keys(self.cfg['password'] + '\n')
         time.sleep(15)
 
-        xpath_remind_later = "//button[@class='button accept rich-in-platform-message-container__button link-new-secondary']"
+        xpath_remind_later = "//button[@class='button accept rich-in-platform-message-container__button " \
+                             "link-new-secondary']"
         waiter.until(lambda driver: driver.find_element_by_xpath(xpath_remind_later))
         ele_remind_later = driver.find_element_by_xpath(xpath_remind_later)
         ele_remind_later.click()
 
         try:
-            ele_close = driver.find_element_by_xpath("//button[ @class ='link-new-secondary "
+            ele_close = driver.find_element_by_xpath("//button[@class ='link-new-secondary "
                                                      "cookie-banner__button']")
             ele_close.click()
         except Exception as e:
             pass
 
-        self.close_subwindows()
+        logger.info('User %s Logged in Successfully!' % self.cfg['username'])
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #
+    def open(self):
+        driver = self.driver
+        driver.get(self.original_url)
+        driver.fullscreen_window()
+        self.login()
+        self.close_sub_windows()
+        count = 0
+        while count < 2:
+            self.open_trade_window(self.cfg['instrument'])
+            count += 1
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #
+    def get_ask_bid(self):
+        driver = self.driver
+        waiter = self.waiter
+
+        xpath_ask = "//div[@class = 'price-box buy']//span[@class = 'price']//span[@class = 'main']"
+        xpath_bid = "//div[@class = 'price-box sell']//span[@class = 'price']//span[@class = 'main']"
+
+        waiter.until(lambda driver: driver.find_element_by_xpath(xpath_ask) and driver.find_element_by_xpath(xpath_bid))
+        ele_ask = driver.find_element_by_xpath(xpath_ask)
+        ele_bid = driver.find_element_by_xpath(xpath_bid)
+        ask = float(ele_ask.text)
+        bid = float(ele_bid.text)
+
+        return ask, bid
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #
+    def trade_template_01(self, strategy):
+        driver = self.driver
+        self.strategy = strategy()
+        logger.info('Trading Strategy %s Has Been Loaded Successfully!' % str(strategy))
+        counter_1 = 0
+        counter_2 = 1
+
+        ele_buy_button = None
+        ele_sell_button = None
+
+        while True:
+            ask_price = self.get_ask_bid()[0]
+            bid_price = self.get_ask_bid()[1]
+            signal = self.strategy.return_signal(ask_price, bid_price)[0]
+
+            # 只检查一次下单按钮，一旦通过，不再检查
+            while counter_1 == 0:
+                try:
+                    ele_buy_button = driver.find_element_by_xpath("//div[@class='next-gen-order-ticket-buttons']//"
+                                                                      "button[contains(text(),'下达市场买单')]")
+                    ele_sell_button = driver.find_element_by_xpath("//div[@class='next-gen-order-ticket-buttons']//"
+                                                                      "button[contains(text(),'下达市场卖单')]")
+                    logger.info('Buy and Sell Button Found!')
+                    logger.info('Trading Strategy Has Been Activated at %s!' % time.asctime())
+                    start_time = time.time()
+                    counter_1 += 1
+                    break
+                except Exception as e:
+                    logger.warning('Buy and Sell Button NOT Found!')
+                    time.sleep(5)
+                    pass
+
+            if signal == 1:
+                print('Get Signal 1')
+                try:
+                    ele_buy_button.click()
+                    print('Buy at %s' % ask_price)
+                except Exception as e:
+                    print('Unexpected error: %s. Stop The Program Right Now!' % e)
+
+            elif signal == -1:
+                print('Get Signal -1')
+                try:
+                    ele_sell_button.click()
+                    print('Sell at %s' % bid_price)
+                except Exception as e:
+                    print('Unexpected error: %s. Stop The Program Right Now!' % e)
+
+            if counter_2 % 60 == 0:
+                end_time = time.time()
+                cost = end_time - start_time
+                logger.info('Strategy Has Been Running for %s Seconds' % round(cost))
+
+            counter_2 += 1
+            time.sleep(1)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #
+    def start_trading(self, strategy):
+        self.open()
+        self.trade_template_01(strategy=strategy)
+
+# ----------------------------------------------------------------------------------------------------------------------
 
 
 if __name__ == '__main__':
-    trader = CMCTrader()
-    trader.login(username='panrui0226@163.com', password='1a8guJ58')
+    file = open('TradingConfig.cfg')
+    cfg_file = json.load(file)
+    trader = CMCTrader(cfg_file)
+
+    trader.start_trading(StrategyWaveCrest)

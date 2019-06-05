@@ -5,7 +5,7 @@ from ArrayManager import TickArrayManager
 
 class StrategyWaveCrest:
     def __init__(self):
-        self.tam = TickArrayManager(frequency=60, size=20)
+        self.tam = TickArrayManager(frequency=5, size=20)
         self.window = []
         # 参数
         self.units = 500
@@ -22,7 +22,7 @@ class StrategyWaveCrest:
         last_price = (bid + ask)/2.0
 
         if len(self.tam.close) > 10:
-            ma5 = self.tam.sma(n=5)
+            ma5 = list(self.tam.sma(n=5, array=True))
             self.window = ma5[len(ma5)-5:]
 
             max_value = max(self.window)
