@@ -147,7 +147,7 @@ class CMCTrader(object):
         ele_password = driver.find_element_by_id('password')
         ele_username.send_keys(self.cfg['username'])
         ele_password.send_keys(self.cfg['password'] + '\n')
-        time.sleep(15)
+        # time.sleep(15)
 
         xpath_remind_later = "//button[@class='button accept rich-in-platform-message-container__button " \
                              "link-new-secondary']"
@@ -196,6 +196,17 @@ class CMCTrader(object):
 
     # ------------------------------------------------------------------------------------------------------------------
     #
+    def fill_quantity(self):
+        driver = self.driver
+        xpath_quantity = "//div[@class='form-ctrl quantity']//div[@name='quantity']"
+        ele_quantity = driver.find_elements_by_xpath(xpath_quantity)
+
+        for quantity in ele_quantity:
+            quantity.clear()
+            quantity.send_keys(self.cfg['amount'] + '\n')
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #
     def trade_template_01(self, strategy):
         driver = self.driver
         self.strategy = strategy()
@@ -222,7 +233,9 @@ class CMCTrader(object):
                     logger.info('Trading Strategy Has Been Activated at %s!' % time.asctime())
                     start_time = time.time()
                     counter_1 += 1
+                    self.fill_quantity()
                     break
+
                 except Exception as e:
                     logger.warning('Buy and Sell Button NOT Found!')
                     time.sleep(5)
@@ -233,6 +246,15 @@ class CMCTrader(object):
                 try:
                     ele_buy_button.click()
                     print('Buy at %s' % ask_price)
+
+                    waiter = self.waiter
+                    xpath_new_order = "//div[@class='next-gen-order-ticket-buttons']//button[contains(text(),'新定单')]"
+                    waiter.until(lambda driver: driver.find_element_by_xpath(xpath_new_order))
+                    ele_new_order = driver.find_element_by_xpath(xpath_new_order)
+                    ele_new_order.click()
+
+                    self.fill_quantity()
+
                 except Exception as e:
                     print('Unexpected error: %s. Stop The Program Right Now!' % e)
 
@@ -241,6 +263,15 @@ class CMCTrader(object):
                 try:
                     ele_sell_button.click()
                     print('Sell at %s' % bid_price)
+
+                    waiter = self.waiter
+                    xpath_new_order = "//div[@class='next-gen-order-ticket-buttons']//button[contains(text(),'新定单')]"
+                    waiter.until(lambda driver: driver.find_element_by_xpath(xpath_new_order))
+                    ele_new_order = driver.find_element_by_xpath(xpath_new_order)
+                    ele_new_order.click()
+
+                    self.fill_quantity()
+
                 except Exception as e:
                     print('Unexpected error: %s. Stop The Program Right Now!' % e)
 
@@ -258,12 +289,5 @@ class CMCTrader(object):
         self.open()
         self.trade_template_01(strategy=strategy)
 
-# ----------------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
 
-
-if __name__ == '__main__':
-    file = open('TradingConfig.cfg')
-    cfg_file = json.load(file)
-    trader = CMCTrader(cfg_file)
-
-    trader.start_trading(StrategyWaveCrest)
