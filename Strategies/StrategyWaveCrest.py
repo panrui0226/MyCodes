@@ -1,6 +1,6 @@
 # usr/bin/env python3
 # -*- coding:utf-8 -*-
-from ArrayManager import TickArrayManager
+from ArrayManager.ArrayManager import TickArrayManager
 
 
 class StrategyWaveCrest:

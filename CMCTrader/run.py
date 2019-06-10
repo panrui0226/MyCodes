@@ -5,10 +5,12 @@
 import json
 from CMCTrader.CMCTraderMac import CMCTrader
 from Strategies.StrategyDoubleMA import StrategyDoubleMA
+from Strategies.StrategyDoubleMA_v4 import StrategyDoubleMA
 
 
 if __name__ == '__main__':
-    file = open('TradingConfig.cfg')
+    file = open('Trader.cfg')
     cfg_file = json.load(file)
     trader = CMCTrader(cfg_file)
-    trader.start_trading(StrategyDoubleMA)
+    strategy = StrategyDoubleMA(use_oanda_data=True)
+    trader.start_trading(strategy)

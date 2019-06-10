@@ -25,15 +25,12 @@ class StrategyDoubleMA(object):
             ma_11 = tam.sma(11, array=True)
 
         # 检查数据完整性
-        if len(ma_11) >= 4:
-            diff0_cross = ma_5[-4] - ma_11[-4]
-            diff1_cross = ma_5[-3] - ma_11[-3]
-            diff2_cross = ma_5[-2] - ma_11[-2]
-            diff3_cross = ma_5[-1] - ma_11[-1]
-
-            diff2_fast = ma_5[-1] - ma_5[-2]
-            diff1_fast = ma_5[-2] - ma_5[-3]
-            diff0_fast = ma_5[-3] - ma_5[-4]
+        if len(ma_11) >= 5:
+            diff0_cross = ma_5[-5] - ma_11[-5]
+            diff1_cross = ma_5[-4] - ma_11[-4]
+            diff2_cross = ma_5[-3] - ma_11[-3]
+            diff3_cross = ma_5[-2] - ma_11[-2]
+            diff4_cross = ma_5[-1] - ma_11[-1]
 
             # golden_cross = diff2_cross < 0 < diff3_cross
             # death_cross = diff3_cross < 0 < diff2_cross
@@ -55,10 +52,10 @@ class StrategyDoubleMA(object):
                     self.posShort = 0
 
             elif self.posLong == 0 and self.posShort == 0:
-                long = diff3_cross > diff2_cross > diff1_cross > 0 > diff0_cross
-                short = diff3_cross < diff2_cross < diff1_cross < 0 < diff0_cross
-                long_filter = diff0_fast > 0 and diff1_fast > 0 and diff2_fast > 0
-                short_filter = diff0_fast < 0 and diff1_fast < 0 and diff2_fast < 0
+                long = diff4_cross > diff3_cross > diff2_cross > diff1_cross > 0 > diff0_cross
+                short = diff4_cross < diff3_cross < diff2_cross < diff1_cross < 0 < diff0_cross
+                long_filter = ma_5[-1] > ma_5[-2] > ma_5[-3] > ma_5[-4] and ma_11[-1] >= ma_11[-2]
+                short_filter = ma_5[-1] < ma_5[-2] < ma_5[-3] < ma_5[-4] and ma_11[-1] <= ma_11[-2]
 
                 if long and long_filter:
                     signal = [1, self.units]

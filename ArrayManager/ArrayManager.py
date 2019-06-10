@@ -20,19 +20,19 @@ class TickArrayManager(object):
         self.frequency = frequency
         self.size = size
         self.tick_data = []
-        self.mid = 0
+        self.last_price = 0
 
     def update_bar(self, bid, ask):
-        self.mid = (bid + ask)/2.0
+        self.last_price = (bid + ask)/2.0
 
         if len(self.tick_data) < self.frequency:
-            self.tick_data.append(self.mid)
+            self.tick_data.append(self.last_price)
         else:
             self.high.append(max(self.tick_data))
             self.low.append(min(self.tick_data))
             self.close.append(self.tick_data[-1])
             self.tick_data = []
-            self.tick_data.append(self.mid)
+            self.tick_data.append(self.last_price)
 
         if len(self.close) > self.size:
             self.high = self.high[len(self.high) - self.size:]
@@ -44,12 +44,9 @@ class TickArrayManager(object):
     def dynamic_sma(self, n: int):
         data_list = np.zeros(np.array(self.close)+1)
         data_list[0:-1] = self.close
-        data_list[-1] = self.mid
+        data_list[-1] = self.last_price
         result = talib.SMA(np.array(data_list))
         return result
-
-    def last_price(self):
-        return self.mid
 
     def atr(self, n: int, array=True):
         result = talib.ATR(np.array(self.high), np.array(self.low), np.array(self.close), n)

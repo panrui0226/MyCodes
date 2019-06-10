@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 # except:
 #     pass
 
-# cfg_file = open('TradingConfig.cfg')
+# cfg_file = open('Trader.cfg')
 # setting = json.load(cfg_file)
 
 
@@ -184,13 +184,27 @@ class CMCTrader(object):
         waiter = self.waiter
 
         xpath_ask = "//div[@class = 'price-box buy']//span[@class = 'price']//span[@class = 'main']"
+        xpath_ask_decimals = "//div[@class = 'price-box buy']//span[@class = 'price']//sub"
         xpath_bid = "//div[@class = 'price-box sell']//span[@class = 'price']//span[@class = 'main']"
+        xpath_bid_decimals = "//div[@class = 'price-box sell']//span[@class = 'price']//sub"
 
         waiter.until(lambda driver: driver.find_element_by_xpath(xpath_ask) and driver.find_element_by_xpath(xpath_bid))
         ele_ask = driver.find_element_by_xpath(xpath_ask)
+        ele_ask_decimals = driver.find_element_by_xpath(xpath_ask_decimals)
         ele_bid = driver.find_element_by_xpath(xpath_bid)
-        ask = float(ele_ask.text)
-        bid = float(ele_bid.text)
+        ele_bid_decimals = driver.find_element_by_xpath(xpath_bid_decimals)
+
+        ask_str = str(ele_ask.text) + str(ele_ask_decimals.text)
+        bid_str = str(ele_bid.text) + str(ele_bid_decimals.text)
+
+        try:
+            ask_str = ask_str.replace(',', '')
+            bid_str = bid_str.replace(',', '')
+        except:
+            pass
+
+        ask = float(ask_str)
+        bid = float(bid_str)
 
         return ask, bid
 
@@ -209,7 +223,7 @@ class CMCTrader(object):
     #
     def trade_template_01(self, strategy):
         driver = self.driver
-        self.strategy = strategy()
+        self.strategy = strategy
         logger.info('Trading Strategy %s Has Been Loaded Successfully!' % str(strategy))
         counter_1 = 0
         counter_2 = 1
@@ -281,13 +295,93 @@ class CMCTrader(object):
                 logger.info('Strategy Has Been Running for %s Seconds' % round(cost))
 
             counter_2 += 1
-            time.sleep(1)
+            time.sleep(0.9)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    #
+    def trade_template_02(self, strategy):
+        driver = self.driver
+        waiter = self.waiter
+        logger.info('Trading Strategy %s Has Been Loaded Successfully!' % str(strategy))
+        counter_1 = 0
+
+        ele_buy_button = None
+        ele_sell_button = None
+
+        xpath_buy_button = "//div[@class='next-gen-order-ticket-buttons']//button[contains(text(),'下达市场买单')]"
+        xpath_sell_button = "//div[@class='next-gen-order-ticket-buttons']//button[contains(text(),'下达市场卖单')]"
+        xpath_amount = "//div[@class='form-ctrl quantity']//div[@class='price-input active-input']"
+        xpath_new_order = "//div[@class='next-gen-order-ticket-buttons']//button[contains(text(),'新定单')]"
+
+        while True:
+            # 首次检查窗口
+            while counter_1 == 0:
+                try:
+                    ele_buy_button = driver.find_element_by_xpath(xpath_buy_button)
+                    ele_sell_button = driver.find_element_by_xpath(xpath_sell_button)
+                    logger.info('Buy and Sell Button Found!')
+                    logger.info('Trading Strategy Has Been Activated at %s!' % time.asctime())
+                    start_time = time.time()
+                    counter_1 += 1
+                    self.fill_quantity()
+                    break
+
+                except Exception as e:
+                    logger.warning('Buy and Sell Button NOT Found!')
+                    time.sleep(5)
+                    pass
+
+            ask = self.get_ask_bid()[0]
+            bid = self.get_ask_bid()[1]
+            signal = strategy.return_signal(ask=ask, bid=bid)
+
+            if signal[0] == 1:
+                logger.info("Get Signal 1")
+                try:
+                    ele_amount = driver.find_elements_by_xpath(xpath_amount)
+                    ele_amount[0].clear()
+                    ele_amount[0].send_keys(str(signal[1]) + '\n')
+                    ele_amount[1].clear()
+                    ele_amount[1].send_keys(str(signal[1]) + '\n')
+
+                    ele_buy_button.click()
+                    waiter.until(lambda driver: driver.find_element_by_xpath(xpath_new_order))
+                    ele_new_order = driver.find_element_by_xpath(xpath_new_order)
+                    ele_new_order.click()
+                except Exception as e:
+                    logger.warning('Unexpected error: %s. Stop The Program Right Now!' % e)
+
+            elif signal[0] == -1:
+                logger.info("Get Signal -1")
+                try:
+                    ele_amount = driver.find_elements_by_xpath(xpath_amount)
+                    ele_amount[0].clear()
+                    ele_amount[0].send_keys(str(signal[1]) + '\n')
+                    ele_amount[1].clear()
+                    ele_amount[1].send_keys(str(signal[1]) + '\n')
+
+                    ele_sell_button.click()
+                    waiter.until(lambda driver: driver.find_element_by_xpath(xpath_new_order))
+                    ele_new_order = driver.find_element_by_xpath(xpath_new_order)
+                    ele_new_order.click()
+                except Exception as e:
+                    logger.warning('Unexpected error: %s. Stop The Program Right Now!' % e)
+
+            # 交易中检查窗口
+            try:
+                ele_buy_button = driver.find_element_by_xpath(xpath_buy_button)
+                ele_sell_button = driver.find_element_by_xpath(xpath_sell_button)
+            except Exception as e:
+                logger.warning("Button Not Found! The Program Is Still Running! Check The Windows Immediately!")
+                pass
+
+            time.sleep(0.9)
 
     # ------------------------------------------------------------------------------------------------------------------
     #
     def start_trading(self, strategy):
         self.open()
-        self.trade_template_01(strategy=strategy)
+        self.trade_template_02(strategy=strategy)
 
     # ------------------------------------------------------------------------------------------------------------------
 

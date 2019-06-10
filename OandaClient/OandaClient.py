@@ -637,11 +637,11 @@ class Oanda:
         params = json.dumps(params_dict)
 
         # url
-        # url = self.restApi + 'instruments/' + instrument + '/candles?count=' + str(count) + '&price=' + price + \
-        #       '&granularity=' + granularity
+        url = self.restApi + 'instruments/' + instrument + '/candles?count=' + str(count) + '&price=' + price + \
+              '&granularity=' + granularity
         # 测试
         # url = 'https://api-fxtrade.oanda.com/v3/instruments/WTICO_USD/candles?price=M&from=2019-05-14T15%3A00%3A00.000000000Z&granularity=S5'
-        url = "https://api-fxpractice.oanda.com/v3/instruments/WTICO_USD/candles?count=5000&price=M&from=2019-05-15T14%3A00%3A00.000000000Z&granularity=S5"
+        # url = "https://api-fxpractice.oanda.com/v3/instruments/WTICO_USD/candles?count=5000&price=M&from=2019-05-15T14%3A00%3A00.000000000Z&granularity=S5"
 
         headers = {"Authorization": "Bearer " +
                    self.accessID, "Content-Type": "application/json"}
